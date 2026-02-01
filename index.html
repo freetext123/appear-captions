@@ -3,125 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppearCaptions | High-Speed AI Video</title>
+    <title>AppearCaptions | Fast Mobile Video Tools</title>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
     <style>
         :root { --main-color: #ffa550; --bg-dark: #121212; --card-bg: #1e1e1e; }
-        body { background-color: var(--bg-dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 10px; }
-        .ad-space { width: 100%; height: 90px; background: #222; border: 1px dashed #444; margin: 15px 0; display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.8rem; }
-        .master-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto; }
-        .box { background: var(--card-bg); border: 2px solid #333; border-radius: 12px; padding: 20px; text-align: center; min-height: 320px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
-        .upload-btn { background: var(--main-color); color: black; padding: 12px 20px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; width: 95%; }
-        #status-msg { color: var(--main-color); font-size: 0.85rem; margin: 10px 0; font-weight: bold; }
-        #edit-area { width: 100%; height: 100px; background: #000; color: #fff; border: 1px solid var(--main-color); border-radius: 8px; padding: 10px; }
-        video { width: 100%; max-height: 160px; border-radius: 8px; display: none; margin-top: 10px; }
-        .buy-pro-btn { display:none; background: #ff4444; color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-size: 0.85rem; width: 90%; font-weight: bold; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        body { background-color: var(--bg-dark); color: white; font-family: sans-serif; margin: 0; padding: 10px; overflow-x: hidden; }
+        .box { background: var(--card-bg); border: 2px solid #333; border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px; }
+        .btn { background: var(--main-color); color: black; padding: 12px; border-radius: 25px; border: none; font-weight: bold; width: 100%; cursor: pointer; }
+        video { width: 100%; border-radius: 8px; display: none; margin-top: 10px; background: #000; }
+        #status { color: var(--main-color); font-size: 0.8rem; margin: 10px 0; }
+        textarea { width: 100%; height: 80px; background: #000; color: #fff; border: 1px solid #444; border-radius: 8px; margin-top: 10px; padding: 8px; box-sizing: border-box; }
+        .pro-msg { display:none; color: #ff4444; font-weight: bold; font-size: 0.9rem; margin-top: 10px; border: 1px dashed #ff4444; padding: 10px; border-radius: 8px; }
     </style>
 </head>
 <body>
 
-    <div class="ad-space">Google AdSense - High CPC USA</div>
-    <h1 style="text-align:center; color: var(--main-color);">AppearCaptions.online</h1>
+    <h1 style="text-align:center; color: var(--main-color); font-size: 1.5rem;">AppearCaptions.online</h1>
 
-    <div class="master-grid">
-        <div class="box">
-            <h2>1. UPLOAD</h2>
-            <input type="file" id="video-input" accept="video/*" style="display:none;">
-            <button class="upload-btn" id="select-btn" disabled>LOADING ENGINE...</button>
-            <div id="status-msg">Please wait, starting AI engine...</div>
-            <video id="preview-video" controls muted></video>
-            <a href="#" class="buy-pro-btn" id="pro-link">🔓 UNLOCK FULL VIDEO ($3)</a>
-        </div>
+    <div class="box">
+        <input type="file" id="video-input" accept="video/*" style="display:none;">
+        <button class="btn" onclick="document.getElementById('video-input').click()">SELECT VIDEO</button>
+        <div id="status">Waiting for file...</div>
+        <video id="preview-video" controls playsinline></video>
+        <div id="pro-notice" class="pro-msg">⚠️ Large Video! Free version trims to 10s. <br> <a href="#" style="color:white;">Upgrade for $3</a></div>
+    </div>
 
-        <div class="box">
-            <h2>2. EDIT</h2>
-            <textarea id="edit-area" placeholder="AI will type here..."></textarea>
-            <button id="start-ai" class="upload-btn" style="background:none; border:1px solid var(--main-color); color:var(--main-color); display:none; margin-top:10px;">START AI</button>
-        </div>
+    <div class="box">
+        <textarea id="edit-area" placeholder="Captions will appear here..."></textarea>
+        <button id="ai-btn" class="btn" style="margin-top:10px; display:none; background:none; border:1px solid var(--main-color); color:var(--main-color);">START AI CAPTIONING</button>
+    </div>
 
-        <div class="box">
-            <h2>3. SAVE</h2>
-            <div id="render-msg" style="font-size:0.8rem;">10s Free Limit Active.</div>
-            <button id="download-btn" class="upload-btn" style="display:none;">DOWNLOAD</button>
-        </div>
+    <div class="box">
+        <button id="down-btn" class="btn" style="display:none;">DOWNLOAD VIDEO</button>
+        <div id="render-msg"></div>
     </div>
 
     <script>
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: true });
-        
         const videoInput = document.getElementById('video-input');
-        const selectBtn = document.getElementById('select-btn');
-        const statusMsg = document.getElementById('status-msg');
         const previewVideo = document.getElementById('preview-video');
-        const startAiBtn = document.getElementById('start-ai');
+        const status = document.getElementById('status');
+        const aiBtn = document.getElementById('ai-btn');
+        const downBtn = document.getElementById('down-btn');
+        const proNotice = document.getElementById('pro-notice');
 
-        // POINT 1: Load engine immediately on page load
-        (async () => {
-            try {
-                await ffmpeg.load();
-                selectBtn.disabled = false;
-                selectBtn.innerText = "SELECT VIDEO";
-                statusMsg.innerText = "✅ Engine Ready! Upload now.";
-            } catch (e) {
-                statusMsg.innerText = "❌ Reload the page.";
-            }
-        })();
+        let originalFile = null;
 
-        videoInput.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
+        videoInput.onchange = (e) => {
+            originalFile = e.target.files[0];
+            if (!originalFile) return;
 
-            const fileSizeMB = file.size / (1024 * 1024);
-            statusMsg.innerText = `Processing ${fileSizeMB.toFixed(1)}MB...`;
+            const sizeMB = originalFile.size / (1024 * 1024);
+            status.innerText = `Loaded: ${sizeMB.toFixed(1)}MB`;
 
-            // POINT 2: Fast File Handling
-            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-
-            if (fileSizeMB > 5) {
-                statusMsg.innerText = "⚠️ Large File: Trimming to 10s Preview.";
-                await ffmpeg.run('-i', 'input.mp4', '-t', '10', '-c', 'copy', 'out.mp4');
-                document.getElementById('pro-link').style.display = "block";
-            } else {
-                statusMsg.innerText = "✅ Small File: Full Video Ready.";
-                await ffmpeg.run('-i', 'input.mp4', '-c', 'copy', 'out.mp4');
-                document.getElementById('pro-link').style.display = "none";
-            }
-
-            const data = ffmpeg.FS('readFile', 'out.mp4');
-            const blob = new Blob([data.buffer], { type: 'video/mp4' });
-            previewVideo.src = URL.createObjectURL(blob);
+            // Display video immediately using Browser's native player (NO HANGING)
+            previewVideo.src = URL.createObjectURL(originalFile);
             previewVideo.style.display = "block";
-            startAiBtn.style.display = "block";
-            statusMsg.innerText = "✅ Done! Click START AI.";
+            aiBtn.style.display = "block";
+
+            // 4242 WC Logic: Show "Annoyance" message if > 5MB
+            if (sizeMB > 5) { proNotice.style.display = "block"; } 
+            else { proNotice.style.display = "none"; }
         };
 
-        // AI & Download Logic
+        // AI Transcription (Uses Mobile's build-in Voice-to-Text)
         const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
         recognition.continuous = true;
-        
-        startAiBtn.onclick = () => {
+
+        aiBtn.onclick = () => {
             recognition.start();
-            previewVideo.muted = false;
             previewVideo.play();
-            startAiBtn.innerText = "🎤 LISTENING...";
+            aiBtn.innerText = "🎤 LISTENING...";
         };
 
         recognition.onresult = (event) => {
-            document.getElementById('edit-area').value = event.results[0][0].transcript;
-            document.getElementById('download-btn').style.display = "block";
+            document.getElementById('edit-area').value = event.results[event.results.length-1][0].transcript;
+            downBtn.style.display = "block";
         };
 
-        document.getElementById('download-btn').onclick = async () => {
-            document.getElementById('render-msg').innerText = "⏳ Saving...";
-            const data = ffmpeg.FS('readFile', 'out.mp4'); // Quick save of the trimmed/full version
+        // FFmpeg loads ONLY when Download is clicked
+        downBtn.onclick = async () => {
+            downBtn.disabled = true;
+            document.getElementById('render-msg').innerText = "⏳ Initializing Engine (Slow on phones)...";
+            
+            const { createFFmpeg, fetchFile } = FFmpeg;
+            const ffmpeg = createFFmpeg({ log: false });
+            
+            await ffmpeg.load();
+            ffmpeg.FS('writeFile', 'in.mp4', await fetchFile(originalFile));
+
+            document.getElementById('render-msg').innerText = "✂️ Trimming & Saving...";
+            
+            // Logic: Trim to 10s and add text
+            const text = document.getElementById('edit-area').value.substring(0,30);
+            await ffmpeg.run('-i', 'in.mp4', '-t', '10', '-vf', `drawtext=text='${text}':x=(w-text_w)/2:y=h-50:fontsize=20:fontcolor=white`, 'out.mp4');
+
+            const data = ffmpeg.FS('readFile', 'out.mp4');
             const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             const a = document.createElement('a');
             a.href = url;
             a.download = "Appear_Video.mp4";
             a.click();
-            document.getElementById('render-msg').innerText = "✅ Saved!";
+            document.getElementById('render-msg').innerText = "✅ Downloaded!";
         };
     </script>
 </body>
