@@ -10,18 +10,18 @@
         body { background-color: var(--bg-dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 10px; }
         .ad-space { width: 100%; height: 90px; background: #222; border: 1px dashed #444; margin: 15px 0; display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.8rem; }
         .master-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto; }
-        .box { background: var(--card-bg); border: 2px solid #333; border-radius: 12px; padding: 20px; text-align: center; min-height: 300px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
-        .upload-btn { background: var(--main-color); color: black; padding: 12px 20px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; width: 95%; transition: 0.3s; }
-        #edit-area { width: 100%; height: 110px; background: #000; color: #fff; border: 1px solid var(--main-color); border-radius: 8px; padding: 10px; margin-top: 10px; font-size: 1rem; resize: none; }
+        .box { background: var(--card-bg); border: 2px solid #333; border-radius: 12px; padding: 20px; text-align: center; min-height: 320px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+        .upload-btn { background: var(--main-color); color: black; padding: 12px 20px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; width: 95%; }
+        #edit-area { width: 100%; height: 110px; background: #000; color: #fff; border: 1px solid var(--main-color); border-radius: 8px; padding: 10px; font-size: 1rem; resize: none; }
         video { width: 100%; max-height: 160px; border-radius: 8px; margin-top: 10px; display: none; }
-        #status-msg { color: var(--main-color); font-size: 0.85rem; margin-top: 10px; font-weight: bold; min-height: 20px; }
-        .buy-pro-btn { display:none; background: #ff4444; color: white; padding: 10px; border-radius: 15px; text-decoration: none; font-size: 0.8rem; margin-top: 5px; width: 90%; }
+        #status-msg { color: var(--main-color); font-size: 0.85rem; margin: 10px 0; font-weight: bold; }
+        .buy-pro-btn { display:none; background: #ff4444; color: white; padding: 12px; border-radius: 15px; text-decoration: none; font-size: 0.85rem; width: 90%; font-weight: bold; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <div class="ad-space">Google AdSense Space - High CPC USA</div>
-
+    <div class="ad-space">Google AdSense - USA Target Space</div>
     <h1 style="text-align:center; color: var(--main-color);">AppearCaptions.online</h1>
 
     <div class="master-grid">
@@ -29,20 +29,20 @@
             <h2>1. UPLOAD</h2>
             <input type="file" id="video-input" accept="video/*" style="display:none;">
             <button class="upload-btn" onclick="document.getElementById('video-input').click()">SELECT VIDEO</button>
+            <div id="status-msg">Click to start.</div>
             <video id="preview-video" controls muted></video>
-            <div id="status-msg">Waiting for file...</div>
-            <a href="#" class="buy-pro-btn" id="pro-link">🔓 UNLOCK FULL VIDEO ($3)</a>
+            <a href="https://lemonsqueezy.com/your-link" class="buy-pro-btn" id="pro-link">🔓 UNLOCK FULL VIDEO ($3)</a>
         </div>
 
         <div class="box">
             <h2>2. EDIT TEXT</h2>
             <textarea id="edit-area" placeholder="AI transcript will appear here..."></textarea>
-            <button id="start-ai" class="upload-btn" style="background:none; border:1px solid var(--main-color); color:var(--main-color); display:none;">START AI LISTENING</button>
+            <button id="start-ai" class="upload-btn" style="background:none; border:1px solid var(--main-color); color:var(--main-color); display:none; margin-top:10px;">START AI LISTENING</button>
         </div>
 
         <div class="box">
             <h2>3. SAVE</h2>
-            <p id="render-msg" style="font-size:0.8rem; opacity:0.8;">Free preview ready to save.</p>
+            <div id="render-msg" style="font-size:0.8rem; opacity:0.8;">Free preview: 10 Seconds.</div>
             <button id="download-btn" class="upload-btn" style="display:none;">DOWNLOAD VIDEO</button>
         </div>
     </div>
@@ -65,41 +65,35 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            statusMsg.innerText = "⏳ Checking video length...";
+            // STEP 1: Quick Size Check (The Quickest Way)
+            const fileSizeMB = file.size / (1024 * 1024);
+            statusMsg.innerText = `Size: ${fileSizeMB.toFixed(1)}MB. Loading Engine...`;
+
+            if (!ffmpeg.isLoaded()) await ffmpeg.load();
+            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+
+            // STEP 2: Logic - If > 5MB, it's likely a long video. Trim it.
+            if (fileSizeMB > 5) {
+                statusMsg.innerText = "⚠️ Large file! Trimming to 10s Preview.";
+                await ffmpeg.run('-i', 'input.mp4', '-t', '10', '-c:v', 'copy', '-c:a', 'copy', 'out.mp4');
+                proLink.style.display = "block"; // Show purchase link
+            } else {
+                statusMsg.innerText = "✅ Small file: Full process enabled.";
+                await ffmpeg.run('-i', 'input.mp4', '-c:v', 'copy', '-c:a', 'copy', 'out.mp4');
+                proLink.style.display = "none";
+            }
+
+            const data = ffmpeg.FS('readFile', 'out.mp4');
+            finalFileBlob = new Blob([data.buffer], { type: 'video/mp4' });
             
-            // Temporary video element to check duration
-            const tempVideo = document.createElement('video');
-            tempVideo.src = URL.createObjectURL(file);
-            
-            tempVideo.onloadedmetadata = async () => {
-                const duration = tempVideo.duration;
-
-                if (!ffmpeg.isLoaded()) await ffmpeg.load();
-                ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-
-                // POINT 1: Condition - If more than 12 seconds, Trim to 10s
-                if (duration > 12) {
-                    statusMsg.innerText = "⚠️ Large file! Trimming to 10s for Free.";
-                    await ffmpeg.run('-i', 'input.mp4', '-t', '10', '-c', 'copy', 'final_version.mp4');
-                    proLink.style.display = "block"; // Show Buy Button
-                } else {
-                    // POINT 2: If less than 12s, skip trimming
-                    statusMsg.innerText = "✅ Short video - Ready for AI.";
-                    await ffmpeg.run('-i', 'input.mp4', '-c', 'copy', 'final_version.mp4');
-                    proLink.style.display = "none";
-                }
-
-                const data = ffmpeg.FS('readFile', 'final_version.mp4');
-                finalFileBlob = new Blob([data.buffer], { type: 'video/mp4' });
-                
-                previewVideo.src = URL.createObjectURL(finalFileBlob);
-                previewVideo.style.display = "block";
-                startAiBtn.style.display = "block";
-            };
+            previewVideo.src = URL.createObjectURL(finalFileBlob);
+            previewVideo.style.display = "block";
+            startAiBtn.style.display = "block";
+            statusMsg.innerText = "✅ Preview Ready. Start AI!";
         };
 
-        // Speech Recognition Setup
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        // AI Logic
+        const recognition = new (window.webkitSpeechRecognition || window.SpeechRecognition)();
         recognition.continuous = true;
         recognition.interimResults = true;
 
@@ -107,7 +101,7 @@
             recognition.start();
             previewVideo.muted = false;
             previewVideo.play();
-            startAiBtn.innerText = "🎤 AI LISTENING...";
+            startAiBtn.innerText = "🎤 LISTENING...";
         };
 
         recognition.onresult = (event) => {
@@ -119,20 +113,18 @@
             downloadBtn.style.display = "block";
         };
 
-        // Final Rendering
         downloadBtn.onclick = async () => {
             document.getElementById('render-msg').innerText = "⏳ Finalizing Video...";
+            const userText = editArea.value.substring(0, 45); 
             
-            const userText = editArea.value.substring(0, 50); 
             ffmpeg.FS('writeFile', 'process.mp4', await fetchFile(finalFileBlob));
+            await ffmpeg.run('-i', 'process.mp4', '-vf', `drawtext=text='${userText}':x=(w-text_w)/2:y=h-60:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4`, 'final.mp4');
 
-            await ffmpeg.run('-i', 'process.mp4', '-vf', `drawtext=text='${userText}':x=(w-text_w)/2:y=h-60:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.4`, 'output.mp4');
-
-            const data = ffmpeg.FS('readFile', 'output.mp4');
+            const data = ffmpeg.FS('readFile', 'final.mp4');
             const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             const a = document.createElement('a');
             a.href = url;
-            a.download = "Appear_Ready.mp4";
+            a.download = "Appear_Tool_Preview.mp4";
             a.click();
             document.getElementById('render-msg').innerText = "✅ Downloaded!";
         };
