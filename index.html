@@ -73,7 +73,7 @@
             ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
 
             // STEP 2: Logic - If > 5MB, it's likely a long video. Trim it.
-            if (fileSizeMB > 5) {
+            if (fileSizeMB > 15) {
                 statusMsg.innerText = "⚠️ Large file! Trimming to 10s Preview.";
                 await ffmpeg.run('-i', 'input.mp4', '-t', '10', '-c:v', 'copy', '-c:a', 'copy', 'out.mp4');
                 proLink.style.display = "block"; // Show purchase link
