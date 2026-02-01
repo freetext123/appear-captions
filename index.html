@@ -3,67 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppearCaptions | Professional AI Video Captions</title>
+    <title>AppearCaptions | AI Video Tools</title>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
     <style>
         :root { --main-color: #ffa550; --bg-dark: #121212; --card-bg: #1e1e1e; }
-        body { background-color: var(--bg-dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 20px; overflow-x: hidden; }
-        .master-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
-        .box { background: var(--card-bg); border: 2px solid #333; border-radius: 15px; padding: 25px; text-align: center; transition: 0.3s; min-height: 280px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .box:hover { border-color: var(--main-color); }
-        h2 { color: var(--main-color); font-size: 1.1rem; margin-bottom: 15px; letter-spacing: 1px; }
-        .upload-btn { background: var(--main-color); color: black; padding: 12px 25px; border-radius: 30px; border: none; cursor: pointer; font-weight: bold; }
-        #caption-display { font-size: 1.3rem; min-height: 100px; color: #fff; padding: 10px; line-height: 1.5; }
-        .word-appear { animation: fadeIn 0.3s ease forwards; display: inline-block; margin-right: 6px; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        #edit-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--card-bg); border: 2px solid var(--main-color); padding: 20px; z-index: 1000; width: 90%; max-width: 500px; border-radius: 15px; }
-        textarea { width: 100%; height: 150px; background: #000; color: white; border: 1px solid #444; border-radius: 8px; padding: 10px; box-sizing: border-box; }
-        .font-option { padding: 12px; margin: 5px; border: 1px solid #444; border-radius: 8px; cursor: pointer; width: 85%; }
-        .locked { opacity: 0.5; cursor: not-allowed; position: relative; }
-        .locked::after { content: '🔒 $3'; position: absolute; right: 15px; font-size: 0.8rem; color: var(--main-color); }
-        #status-bar { color: var(--main-color); margin-top: 10px; font-size: 0.85rem; }
-        video { width: 100%; border-radius: 10px; display: none; margin-top: 10px; }
-        #progress-container { width: 100%; background: #333; height: 10px; border-radius: 5px; display: none; margin-top: 10px; }
-        #progress-bar { width: 0%; background: var(--main-color); height: 100%; border-radius: 5px; }
+        body { background-color: var(--bg-dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 10px; }
+        .ad-space { width: 100%; height: 90px; background: #222; border: 1px dashed #444; margin: 15px 0; display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.8rem; }
+        .master-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto; }
+        .box { background: var(--card-bg); border: 2px solid #333; border-radius: 12px; padding: 20px; text-align: center; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .upload-btn { background: var(--main-color); color: black; padding: 12px 20px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; width: 85%; }
+        #caption-display { font-size: 1.2rem; min-height: 80px; margin: 10px 0; color: #efefef; }
+        .word-appear { animation: fadeIn 0.4s ease forwards; display: inline-block; margin-right: 5px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        video { width: 100%; max-height: 180px; border-radius: 8px; margin-top: 10px; display: none; }
+        #render-status { margin-top: 10px; color: var(--main-color); font-weight: bold; }
     </style>
 </head>
 <body>
 
+    <div class="ad-space">AdSense Placement - USA High CPC</div>
+
     <h1 style="text-align:center; color: var(--main-color);">AppearCaptions.online</h1>
+
     <div class="master-grid">
         <div class="box">
-            <h2>BOX 1: ADD VIDEO</h2>
+            <h2>1. UPLOAD</h2>
             <input type="file" id="video-input" accept="video/*" style="display:none;">
-            <button class="upload-btn" onclick="document.getElementById('video-input').click()">+ SELECT VIDEO</button>
-            <video id="preview-video" controls muted></video>
-            <div id="status-bar">Waiting...</div>
+            <button class="upload-btn" onclick="document.getElementById('video-input').click()">SELECT VIDEO</button>
+            <video id="preview-video" controls></video>
+            <p id="mic-hint" style="display:none; color:red; font-size:0.8rem; margin-top:5px;">⚠️ Please UNMUTE video to start AI!</p>
         </div>
 
         <div class="box">
-            <h2>BOX 2: AI CAPTIONING</h2>
-            <div id="caption-display">Text appears here...</div>
-            <button id="edit-btn" class="upload-btn" style="display:none; background:transparent; border:1px solid var(--main-color); color:var(--main-color);">EDIT TEXT</button>
+            <h2>2. AI CAPTIONS</h2>
+            <div id="caption-display">Waiting for audio...</div>
+            <button id="start-ai-btn" class="upload-btn" style="display:none; background:none; border:1px solid var(--main-color); color:var(--main-color);">START AI LISTENING</button>
         </div>
 
         <div class="box">
-            <h2>BOX 3: FONT STYLE</h2>
-            <div class="font-option" id="font-free">Normal Clean (Free)</div>
-            <div class="font-option locked">Glowing Neon (Pro)</div>
-            <div class="font-option locked">YouTube Shorts Style (Pro)</div>
+            <h2>3. 10s PREVIEW</h2>
+            <p style="font-size:0.8rem; opacity:0.7;">Free version trims first 10 seconds.</p>
+            <button id="download-btn" class="upload-btn" style="display:none;">DOWNLOAD PREVIEW</button>
+            <div id="render-status"></div>
         </div>
-
-        <div class="box">
-            <h2>BOX 4: AUTO SAVE</h2>
-            <div id="download-status">Ready to render...</div>
-            <div id="progress-container"><div id="progress-bar"></div></div>
-            <button id="download-btn" class="upload-btn" style="display:none; margin-top:20px;">GENERATE & DOWNLOAD</button>
-        </div>
-    </div>
-
-    <div id="edit-modal">
-        <h3>Edit Captions</h3>
-        <textarea id="edit-area"></textarea>
-        <button class="upload-btn" style="width:100%;" onclick="saveEdit()">SAVE</button>
     </div>
 
     <script>
@@ -72,65 +54,61 @@
         
         const videoInput = document.getElementById('video-input');
         const previewVideo = document.getElementById('preview-video');
-        const statusBar = document.getElementById('status-bar');
         const captionDisplay = document.getElementById('caption-display');
         const downloadBtn = document.getElementById('download-btn');
-        const progressBar = document.getElementById('progress-bar');
+        const startAiBtn = document.getElementById('start-ai-btn');
 
-        let finalTranscript = "";
+        let transcript = "";
 
-        // Transcription Logic
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.continuous = true;
-        recognition.lang = 'en-US';
+        recognition.interimResults = true;
 
-        videoInput.onchange = async (e) => {
+        videoInput.onchange = (e) => {
             const file = e.target.files[0];
             previewVideo.src = URL.createObjectURL(file);
             previewVideo.style.display = "block";
-            previewVideo.play();
+            startAiBtn.style.display = "block";
+            document.getElementById('mic-hint').style.display = "block";
+            captionDisplay.innerText = "Click 'START AI' and Unmute video.";
+        };
+
+        startAiBtn.onclick = () => {
             recognition.start();
-            statusBar.innerText = "🎤 Listening to Video Audio...";
+            previewVideo.muted = false; // Force unmute
+            previewVideo.play();
+            startAiBtn.innerText = "AI IS LISTENING...";
         };
 
         recognition.onresult = (event) => {
-            let text = event.results[event.results.length - 1][0].transcript;
-            finalTranscript += text + " ";
-            const span = document.createElement('span');
-            span.className = 'word-appear';
-            span.innerText = text;
-            captionDisplay.appendChild(span);
-            document.getElementById('edit-btn').style.display = 'block';
-            downloadBtn.style.display = 'block';
+            let result = event.results[event.results.length - 1][0].transcript;
+            transcript = result;
+            captionDisplay.innerHTML = "";
+            result.split(" ").forEach(word => {
+                captionDisplay.innerHTML += `<span class="word-appear">${word} </span>`;
+            });
+            downloadBtn.style.display = "block";
         };
 
-        // FFmpeg Rendering Logic
         downloadBtn.onclick = async () => {
+            document.getElementById('render-status').innerText = "Trimming 10s & Adding Captions...";
             if (!ffmpeg.isLoaded()) await ffmpeg.load();
             
-            document.getElementById('progress-container').style.display = 'block';
             const file = videoInput.files[0];
             ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
 
-            statusBar.innerText = "Rendering Captions...";
-            
-            // FFmpeg Command to burn captions (Simple version for 100% success)
-            await ffmpeg.run('-i', 'input.mp4', '-vf', `drawtext=text='${finalTranscript.substring(0,50)}':x=(w-text_w)/2:y=h-80:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.5`, 'output.mp4');
+            // 4242 WC: Logic - Trim 10 seconds and add text
+            // -t 10 means take only first 10 seconds
+            await ffmpeg.run('-i', 'input.mp4', '-t', '10', '-vf', `drawtext=text='${transcript.substring(0,35)}':x=(w-text_w)/2:y=h-60:fontsize=28:fontcolor=white:box=1:boxcolor=black@0.5`, 'output.mp4');
 
             const data = ffmpeg.FS('readFile', 'output.mp4');
             const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             const a = document.createElement('a');
             a.href = url;
-            a.download = "Appear_" + file.name;
+            a.download = "Appear_Preview_" + file.name;
             a.click();
-            statusBar.innerText = "✅ Downloaded Successfully!";
+            document.getElementById('render-status').innerText = "✅ Preview Saved! (10s)";
         };
-
-        function saveEdit() {
-            finalTranscript = document.getElementById('edit-area').value;
-            captionDisplay.innerText = finalTranscript;
-            document.getElementById('edit-modal').style.display = 'none';
-        }
     </script>
 </body>
 </html>
