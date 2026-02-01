@@ -3,48 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppearCaptions | AI Video Tools</title>
+    <title>AppearCaptions | Fast AI Video Tools</title>
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
     <style>
         :root { --main-color: #ffa550; --bg-dark: #121212; --card-bg: #1e1e1e; }
         body { background-color: var(--bg-dark); color: white; font-family: 'Inter', sans-serif; margin: 0; padding: 10px; }
         .ad-space { width: 100%; height: 90px; background: #222; border: 1px dashed #444; margin: 15px 0; display: flex; align-items: center; justify-content: center; color: #666; font-size: 0.8rem; }
         .master-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; max-width: 1200px; margin: 0 auto; }
-        .box { background: var(--card-bg); border: 2px solid #333; border-radius: 12px; padding: 20px; text-align: center; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-        .upload-btn { background: var(--main-color); color: black; padding: 12px 20px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; width: 85%; }
-        #caption-display { font-size: 1.2rem; min-height: 80px; margin: 10px 0; color: #efefef; }
+        .box { background: var(--card-bg); border: 2px solid #333; border-radius: 12px; padding: 20px; text-align: center; min-height: 280px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+        .upload-btn { background: var(--main-color); color: black; padding: 12px 20px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; width: 90%; transition: 0.3s; }
+        .upload-btn:hover { background: #ffbd7a; }
+        #edit-area { width: 100%; height: 100px; background: #000; color: #fff; border: 1px solid var(--main-color); border-radius: 8px; padding: 10px; margin-top: 10px; font-size: 0.9rem; resize: none; }
+        video { width: 100%; max-height: 150px; border-radius: 8px; margin-top: 10px; display: none; }
+        #status-msg { color: var(--main-color); font-size: 0.85rem; margin-top: 10px; font-weight: bold; }
         .word-appear { animation: fadeIn 0.4s ease forwards; display: inline-block; margin-right: 5px; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        video { width: 100%; max-height: 180px; border-radius: 8px; margin-top: 10px; display: none; }
-        #render-status { margin-top: 10px; color: var(--main-color); font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="ad-space">AdSense Placement - USA High CPC</div>
+    <div class="ad-space">Google AdSense Space - High CPC USA</div>
 
     <h1 style="text-align:center; color: var(--main-color);">AppearCaptions.online</h1>
 
     <div class="master-grid">
         <div class="box">
-            <h2>1. UPLOAD</h2>
+            <h2>1. UPLOAD VIDEO</h2>
             <input type="file" id="video-input" accept="video/*" style="display:none;">
-            <button class="upload-btn" onclick="document.getElementById('video-input').click()">SELECT VIDEO</button>
-            <video id="preview-video" controls></video>
-            <p id="mic-hint" style="display:none; color:red; font-size:0.8rem; margin-top:5px;">⚠️ Please UNMUTE video to start AI!</p>
+            <button class="upload-btn" onclick="document.getElementById('video-input').click()">SELECT FILE</button>
+            <video id="preview-video" controls muted></video>
+            <div id="status-msg">Upload to trim first 10s automatically.</div>
         </div>
 
         <div class="box">
-            <h2>2. AI CAPTIONS</h2>
-            <div id="caption-display">Waiting for audio...</div>
-            <button id="start-ai-btn" class="upload-btn" style="display:none; background:none; border:1px solid var(--main-color); color:var(--main-color);">START AI LISTENING</button>
+            <h2>2. EDIT CAPTIONS</h2>
+            <textarea id="edit-area" placeholder="AI will type here..."></textarea>
+            <button id="start-ai" class="upload-btn" style="background:none; border:1px solid var(--main-color); color:var(--main-color); margin-top:10px; display:none;">START AI LISTENING</button>
         </div>
 
         <div class="box">
-            <h2>3. 10s PREVIEW</h2>
-            <p style="font-size:0.8rem; opacity:0.7;">Free version trims first 10 seconds.</p>
-            <button id="download-btn" class="upload-btn" style="display:none;">DOWNLOAD PREVIEW</button>
-            <div id="render-status"></div>
+            <h2>3. SAVE PREVIEW</h2>
+            <p style="font-size:0.8rem; opacity:0.7;">10s Preview is Free!</p>
+            <button id="download-btn" class="upload-btn" style="display:none;">DOWNLOAD VIDEO</button>
+            <div id="render-msg" style="margin-top:10px; font-size:0.85rem;"></div>
         </div>
     </div>
 
@@ -54,60 +55,74 @@
         
         const videoInput = document.getElementById('video-input');
         const previewVideo = document.getElementById('preview-video');
-        const captionDisplay = document.getElementById('caption-display');
+        const editArea = document.getElementById('edit-area');
+        const startAiBtn = document.getElementById('start-ai');
         const downloadBtn = document.getElementById('download-btn');
-        const startAiBtn = document.getElementById('start-ai-btn');
+        const statusMsg = document.getElementById('status-msg');
 
-        let transcript = "";
+        let trimmedBlob = null;
 
+        // POINT 1: Auto-Trim on Upload
+        videoInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            statusMsg.innerText = "⏳ Loading Processing Engine...";
+            if (!ffmpeg.isLoaded()) await ffmpeg.load();
+
+            statusMsg.innerText = "⏳ Trimming first 10 seconds...";
+            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+
+            // Trim to 10s immediately
+            await ffmpeg.run('-i', 'input.mp4', '-t', '10', '-c', 'copy', 'trimmed.mp4');
+            
+            const data = ffmpeg.FS('readFile', 'trimmed.mp4');
+            trimmedBlob = new Blob([data.buffer], { type: 'video/mp4' });
+            
+            previewVideo.src = URL.createObjectURL(trimmedBlob);
+            previewVideo.style.display = "block";
+            startAiBtn.style.display = "block";
+            statusMsg.innerText = "✅ 10s Ready! Now Start AI.";
+        };
+
+        // POINT 2: AI Listening & Editing
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        videoInput.onchange = (e) => {
-            const file = e.target.files[0];
-            previewVideo.src = URL.createObjectURL(file);
-            previewVideo.style.display = "block";
-            startAiBtn.style.display = "block";
-            document.getElementById('mic-hint').style.display = "block";
-            captionDisplay.innerText = "Click 'START AI' and Unmute video.";
-        };
-
         startAiBtn.onclick = () => {
             recognition.start();
-            previewVideo.muted = false; // Force unmute
+            previewVideo.muted = false; // Required for AI to hear
             previewVideo.play();
-            startAiBtn.innerText = "AI IS LISTENING...";
+            startAiBtn.innerText = "🎤 AI IS LISTENING...";
         };
 
         recognition.onresult = (event) => {
-            let result = event.results[event.results.length - 1][0].transcript;
-            transcript = result;
-            captionDisplay.innerHTML = "";
-            result.split(" ").forEach(word => {
-                captionDisplay.innerHTML += `<span class="word-appear">${word} </span>`;
-            });
+            let transcript = "";
+            for (let i = 0; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript + " ";
+            }
+            editArea.value = transcript;
             downloadBtn.style.display = "block";
         };
 
+        // POINT 3: Rendering & Download
         downloadBtn.onclick = async () => {
-            document.getElementById('render-status').innerText = "Trimming 10s & Adding Captions...";
-            if (!ffmpeg.isLoaded()) await ffmpeg.load();
+            document.getElementById('render-msg').innerText = "⏳ Adding Captions... (Fast)";
             
-            const file = videoInput.files[0];
-            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+            const userText = editArea.value.substring(0, 50); // Clean length
+            ffmpeg.FS('writeFile', 'temp.mp4', await fetchFile(trimmedBlob));
 
-            // 4242 WC: Logic - Trim 10 seconds and add text
-            // -t 10 means take only first 10 seconds
-            await ffmpeg.run('-i', 'input.mp4', '-t', '10', '-vf', `drawtext=text='${transcript.substring(0,35)}':x=(w-text_w)/2:y=h-60:fontsize=28:fontcolor=white:box=1:boxcolor=black@0.5`, 'output.mp4');
+            // Burn edited text into the 10s video
+            await ffmpeg.run('-i', 'temp.mp4', '-vf', `drawtext=text='${userText}':x=(w-text_w)/2:y=h-60:fontsize=26:fontcolor=white:box=1:boxcolor=black@0.4`, 'final.mp4');
 
-            const data = ffmpeg.FS('readFile', 'output.mp4');
+            const data = ffmpeg.FS('readFile', 'final.mp4');
             const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
             const a = document.createElement('a');
             a.href = url;
-            a.download = "Appear_Preview_" + file.name;
+            a.download = "Appear_Preview.mp4";
             a.click();
-            document.getElementById('render-status').innerText = "✅ Preview Saved! (10s)";
+            document.getElementById('render-msg').innerText = "✅ Saved Successfully!";
         };
     </script>
 </body>
