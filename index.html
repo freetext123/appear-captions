@@ -3,110 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppearCaptions | Step 2: Rendering</title>
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.0/dist/ffmpeg.min.js"></script>
+    <title>AppearCaptions | Fast Render</title>
     <style>
         :root { --main: #ffa550; --bg: #121212; --card: #1e1e1e; }
         body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; padding: 10px; }
         .container { max-width: 500px; margin: auto; background: var(--card); padding: 20px; border-radius: 15px; border: 2px solid #333; }
         
-        /* Font Selection UI */
         .font-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
         .font-opt { padding: 10px; border: 1px solid #444; border-radius: 8px; font-size: 0.8rem; cursor: pointer; position: relative; }
         .font-opt.active { border-color: var(--main); background: #333; }
+        .locked { opacity: 0.5; cursor: not-allowed; }
         .locked-tag { position: absolute; top: -5px; right: -5px; background: red; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px; }
 
-        textarea { width: 100%; height: 100px; background: #000; color: #00ff00; border: 1px solid var(--main); border-radius: 10px; padding: 10px; box-sizing: border-box; }
+        textarea { width: 100%; height: 80px; background: #000; color: #00ff00; border: 1px solid var(--main); border-radius: 10px; padding: 10px; box-sizing: border-box; font-size: 1rem; }
         .btn { background: var(--main); color: black; padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; }
-        #render-status { color: var(--main); font-size: 0.8rem; margin-top: 10px; }
+        video, canvas { display: none; width: 100%; border-radius: 10px; margin-top: 10px; }
+        #status { color: var(--main); font-size: 0.8rem; margin-top: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h1 style="color: var(--main);">Step 2: Custom Styles</h1>
+    <h1 style="color: var(--main);">AppearCaptions AI</h1>
     
     <div class="container">
         <input type="file" id="video-input" accept="video/*" style="display:none;">
-        <button class="btn" onclick="document.getElementById('video-input').click()">1. RELOAD VIDEO</button>
+        <button class="btn" onclick="document.getElementById('video-input').click()">UPLOAD VIDEO</button>
 
         <div class="font-selector">
             <div class="font-opt active">Classic White (FREE)</div>
-            <div class="font-opt" onclick="alert('Buy Pro to Unlock!')">Viral Yellow <span class="locked-tag">PRO</span></div>
-            <div class="font-opt" onclick="alert('Buy Pro to Unlock!')">Bold Shadow <span class="locked-tag">PRO</span></div>
-            <div class="font-opt" onclick="alert('Buy Pro to Unlock!')">Neon Glow <span class="locked-tag">PRO</span></div>
+            <div class="font-opt locked">Viral Yellow <span class="locked-tag">PRO</span></div>
+            <div class="font-opt locked">Bold Shadow <span class="locked-tag">PRO</span></div>
+            <div class="font-opt locked">Neon Glow <span class="locked-tag">PRO</span></div>
         </div>
 
-        <textarea id="output-text" placeholder="AI Transcript..."></textarea>
+        <textarea id="output-text" placeholder="AI Transcript will appear here..."></textarea>
         
-        <button id="render-btn" class="btn" style="display:none;">2. DOWNLOAD CAPTIONED VIDEO</button>
-        <div id="render-status">Engine Ready...</div>
+        <button id="render-btn" class="btn" style="display:none;">DOWNLOAD 10s CAPTIONED VIDEO</button>
+        <div id="status">Waiting for AI...</div>
+
+        <video id="v-player" muted playsinline></video>
+        <canvas id="render-canvas"></canvas>
     </div>
 
     <script type="module">
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0';
-        const { createFFmpeg, fetchFile } = FFmpeg;
-        const ffmpeg = createFFmpeg({ log: false });
 
         const videoInput = document.getElementById('video-input');
         const renderBtn = document.getElementById('render-btn');
         const outputText = document.getElementById('output-text');
-        const status = document.getElementById('render-status');
+        const status = document.getElementById('status');
+        const player = document.getElementById('v-player');
+        const canvas = document.getElementById('render-canvas');
+        const ctx = canvas.getContext('2d');
 
         let transcriber;
 
-        // Init AI
         async function init() {
-            status.innerText = "⏳ Loading AI & Video Engine...";
+            status.innerText = "⏳ Loading AI Engine...";
             transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
-            if (!ffmpeg.isLoaded()) await ffmpeg.load();
-            status.innerText = "✅ Systems Ready!";
+            status.innerText = "✅ AI Ready! Upload Video.";
         }
         init();
 
         videoInput.onchange = async () => {
-            if (!videoInput.files[0]) return;
-            renderBtn.style.display = 'block';
-            status.innerText = "Analyzing audio... please wait.";
-            
             const file = videoInput.files[0];
+            if (!file) return;
+
+            status.innerText = "🎤 Analyzing first 10s... Please wait.";
+            player.src = URL.createObjectURL(file);
+            
             const audioContext = new AudioContext({ sampleRate: 16000 });
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-            const audioData = audioBuffer.getChannelData(0).slice(0, 10 * 16000); // 10s only
+            const audioData = audioBuffer.getChannelData(0).slice(0, 10 * 16000);
 
             const result = await transcriber(audioData);
             outputText.value = result.text;
-            status.innerText = "✅ Ready to Render (10s Limit)";
+            
+            status.innerText = "✅ Ready! Click Download.";
+            renderBtn.style.display = 'block';
         };
 
-        renderBtn.onclick = async () => {
-            status.innerText = "⏳ Burning Captions (May take 10-20s)...";
+        renderBtn.onclick = () => {
+            status.innerText = "🚀 Recording 10s Video... (Fast)";
             renderBtn.disabled = true;
 
-            const file = videoInput.files[0];
-            const text = outputText.value.replace(/'/g, ""); // Clean text for FFmpeg
-            
-            ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+            // Setup Canvas Size
+            player.onloadedmetadata = () => {
+                canvas.width = player.videoWidth;
+                canvas.height = player.videoHeight;
+            };
 
-            // FFmpeg Magic: Trim to 10s and Add Text
-            // Logic: Drawtext at bottom center
-            await ffmpeg.run(
-                '-i', 'input.mp4',
-                '-t', '10',
-                '-vf', `drawtext=text='${text.substring(0, 60)}':x=(w-text_w)/2:y=h-80:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.5`,
-                'output_ready.mp4'
-            );
+            const stream = canvas.captureStream(30);
+            const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            const chunks = [];
 
-            const data = ffmpeg.FS('readFile', 'output_ready.mp4');
-            const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "AppearCaptions_Viral_Video.mp4"; // New Name
-            a.click();
+            recorder.ondataavailable = e => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = "Appear_Viral_Video.webm";
+                a.click();
+                status.innerText = "✅ Downloaded! Check your gallery.";
+                renderBtn.disabled = false;
+            };
 
-            status.innerText = "✅ Downloaded Successfully!";
-            renderBtn.disabled = false;
+            // Start Recording
+            player.currentTime = 0;
+            player.play();
+            recorder.start();
+
+            const drawFrame = () => {
+                if (player.currentTime >= 10 || player.ended) {
+                    recorder.stop();
+                    player.pause();
+                    return;
+                }
+                
+                // Draw Video Frame
+                ctx.drawImage(player, 0, 0, canvas.width, canvas.height);
+                
+                // Draw Captions
+                ctx.fillStyle = "white";
+                ctx.font = `${canvas.height / 15}px Arial`;
+                ctx.textAlign = "center";
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = 4;
+                
+                const text = outputText.value.substring(0, 50);
+                ctx.strokeText(text, canvas.width / 2, canvas.height - 50);
+                ctx.fillText(text, canvas.width / 2, canvas.height - 50);
+                
+                requestAnimationFrame(drawFrame);
+            };
+            drawFrame();
         };
     </script>
 </body>
