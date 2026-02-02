@@ -3,30 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Step 1: AI Text Capture</title>
+    <title>Step 1: High-Accuracy AI</title>
     <style>
         :root { --main: #ffa550; --bg: #121212; }
         body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; padding: 20px; }
         .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; border: 2px solid #333; }
         video { width: 100%; border-radius: 10px; margin-bottom: 15px; background: #000; }
-        textarea { width: 100%; height: 150px; background: #000; color: var(--main); border: 1px solid var(--main); border-radius: 10px; padding: 10px; font-size: 1.1rem; box-sizing: border-box; }
+        textarea { width: 100%; height: 180px; background: #000; color: #00ff00; border: 1px solid var(--main); border-radius: 10px; padding: 10px; font-size: 1.1rem; box-sizing: border-box; font-family: monospace; }
         .btn { background: var(--main); color: black; padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; font-size: 1rem; }
-        #status { margin: 10px 0; font-size: 0.9rem; color: #888; }
     </style>
 </head>
 <body>
 
-    <h1>AI Text Capture Test</h1>
+    <h1>Advanced AI Transcription Test</h1>
+    <p style="font-size: 0.8rem; color: #888;">Step 1: Focus on getting 100% words</p>
+
     <div class="container">
         <input type="file" id="video-input" accept="video/*" style="display:none;">
         <button class="btn" onclick="document.getElementById('video-input').click()">LOAD VIDEO</button>
-        <div id="status">Upload a video to start testing AI listening.</div>
         
         <video id="player" controls playsinline></video>
         
-        <textarea id="output-text" placeholder="AI Transcript will appear here in real-time..."></textarea>
+        <textarea id="output-text" placeholder="Testing AI accuracy..."></textarea>
         
-        <button id="listen-btn" class="btn" style="display:none; background:none; border: 2px solid var(--main); color: var(--main);">START AI LISTENING</button>
+        <button id="listen-btn" class="btn" style="display:none; background:none; border: 2px solid var(--main); color: var(--main);">START ACCURATE LISTENING</button>
     </div>
 
     <script>
@@ -34,52 +34,48 @@
         const player = document.getElementById('player');
         const outputText = document.getElementById('output-text');
         const listenBtn = document.getElementById('listen-btn');
-        const status = document.getElementById('status');
 
-        // Speech Recognition Engine Setup
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         const recognition = new SpeechRecognition();
         
-        recognition.continuous = true; // Keep listening
-        recognition.interimResults = true; // Show text while speaking
-        recognition.lang = 'en-US'; // You can change this to 'hi-IN' or others later
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
 
         videoInput.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
                 player.src = URL.createObjectURL(file);
                 listenBtn.style.display = 'block';
-                status.innerText = "Video Loaded. Put your volume up and click Start AI.";
             }
         };
 
         listenBtn.onclick = () => {
-            try {
-                recognition.start();
-                player.play();
-                listenBtn.innerText = "🎤 AI IS LISTENING...";
-                status.innerText = "Listening to audio... keep it clear.";
-            } catch (err) {
-                console.error("Recognition already started or error:", err);
-            }
+            // Reset text for fresh test
+            outputText.value = "";
+            recognition.start();
+            
+            // Critical: Play video with volume so AI can "Hear" it better
+            player.volume = 1.0; 
+            player.play();
+            listenBtn.innerText = "🎤 LISTENING TO INTERNAL AUDIO...";
         };
 
         recognition.onresult = (event) => {
-            let finalText = "";
+            let currentTranscript = "";
             for (let i = 0; i < event.results.length; i++) {
-                finalText += event.results[i][0].transcript + " ";
+                currentTranscript += event.results[i][0].transcript + " ";
             }
-            outputText.value = finalText; // This updates the box with every word heard
+            outputText.value = currentTranscript;
         };
 
-        recognition.onerror = (event) => {
-            status.innerText = "Error: " + event.error + ". Try again.";
-            listenBtn.innerText = "START AI LISTENING";
-        };
-
+        // If it stops, auto-restart to catch everything
         recognition.onend = () => {
-            listenBtn.innerText = "START AI LISTENING";
-            status.innerText = "Stopped listening.";
+            if (!player.paused) {
+                recognition.start();
+            } else {
+                listenBtn.innerText = "START ACCURATE LISTENING";
+            }
         };
     </script>
 </body>
