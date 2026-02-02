@@ -3,50 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppearCaptions | Pro Dynamic AI</title>
+    <title>AppearCaptions | Pro AI Sync</title>
     <style>
-        :root { --main: #ffa550; --bg: #121212; }
-        body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; padding: 10px; }
-        .container { max-width: 450px; margin: auto; background: #1e1e1e; padding: 15px; border-radius: 15px; border: 2px solid #333; }
-        #v-preview { width: 100%; border-radius: 10px; display: none; margin-top: 10px; border: 1px solid #444; }
-        .btn { background: var(--main); color: black; padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 100%; cursor: pointer; margin-top: 15px; }
-        #status { color: var(--main); font-size: 0.8rem; margin-top: 10px; font-weight: bold; }
-        canvas { display: none; } /* Hidden, used for recording only */
+        :root { --main: #ffa550; --bg: #0f0f0f; --ready: #2ecc71; --wait: #e74c3c; }
+        body { background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; text-align: center; }
+        
+        /* Mechanic Status Indicator */
+        .engine-status { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 20px; font-size: 0.8rem; letter-spacing: 1px; }
+        .indicator { width: 12px; height: 12px; border-radius: 50%; background: var(--wait); box-shadow: 0 0 10px var(--wait); transition: 0.5s; }
+        .indicator.ready { background: var(--ready); box-shadow: 0 0 15px var(--ready); }
+
+        .app-card { max-width: 420px; margin: 10px auto; background: #1a1a1a; padding: 25px; border-radius: 30px; border: 1px solid #333; }
+        
+        /* Font Styles Grid (The "Pay" Hook) */
+        .font-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+        .font-item { padding: 12px; background: #222; border: 1px solid #333; border-radius: 12px; font-size: 0.75rem; cursor: pointer; position: relative; opacity: 0.6; }
+        .font-item.active { opacity: 1; border-color: var(--main); color: var(--main); font-weight: bold; }
+        .font-item span { position: absolute; top: -5px; right: -5px; background: #ff4444; font-size: 0.6rem; padding: 2px 6px; border-radius: 50px; color: white; font-weight: 900; }
+
+        .btn { background: var(--main); color: black; padding: 18px; border-radius: 40px; border: none; font-weight: 900; width: 100%; cursor: pointer; font-size: 1.1rem; margin-top: 15px; }
+        .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+        
+        #v-preview { width: 100%; border-radius: 15px; display: none; margin-top: 20px; border: 1px solid #444; }
+        
+        /* Pro Modal */
+        #pay-modal { display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-box { background: white; color: black; padding: 30px; border-radius: 30px; width: 85%; max-width: 350px; }
+        canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <h1 style="color: var(--main);">AppearCaptions AI</h1>
-    
-    <div class="container">
-        <input type="file" id="video-input" accept="video/*" style="display:none;">
-        <button class="btn" onclick="document.getElementById('video-input').click()">UPLOAD VIDEO</button>
-        
-        <div id="status">Waiting for AI...</div>
-        <video id="v-preview" muted playsinline></video>
-        
-        <button id="render-btn" class="btn" style="display:none;">GENERATE DYNAMIC VIDEO (10s)</button>
-        <canvas id="render-canvas"></canvas>
+    <div class="engine-status">
+        <div id="light" class="indicator"></div>
+        <span id="engine-text">ENGINE OFFLINE</span>
     </div>
+
+    <div class="app-card">
+        <h1 style="margin:0; color:var(--main);">APPEAR CAPTIONS</h1>
+        <p style="color:#666; font-size:0.7rem; margin-bottom:20px;">GEN-Z AI VIDEO SYNC</p>
+
+        <input type="file" id="video-input" accept="video/*" style="display:none;">
+        <button class="btn" id="upload-btn" onclick="document.getElementById('video-input').click()">UPLOAD</button>
+
+        <div class="font-grid">
+            <div class="font-item active" style="font-family: Arial;">Classic Simple</div>
+            <div class="font-item" style="font-family: 'Impact';">Viral Bold <span>PRO</span></div>
+            <div class="font-item" style="font-family: 'Comic Sans MS';">MrBeast Style <span>PRO</span></div>
+            <div class="font-item" style="font-family: 'Georgia';">Modern Serif <span>PRO</span></div>
+            <div class="font-item" style="font-family: 'Courier New';">Typewriter <span>PRO</span></div>
+            <div class="font-item" style="background: yellow; color: black; font-weight: 900;">Hormozi Pop <span>PRO</span></div>
+        </div>
+
+        <video id="v-preview" muted playsinline></video>
+        <button id="render-btn" class="btn" style="display:none;">DOWNLOAD 🟢</button>
+    </div>
+
+    <div id="pay-modal">
+        <div class="modal-box">
+            <h2 style="font-weight: 900;">⚡ GO PRO</h2>
+            <p>Unlock all <b>6 Viral Fonts</b> and Full Length videos.</p>
+            <div style="font-size: 2rem; font-weight: 900; margin: 15px 0;">$2.99</div>
+            <button class="btn" onclick="location.href='https://your-payment-link.com'">UNLOCK ALL</button>
+            <p onclick="closeModal()" style="color:#999; margin-top:15px; cursor:pointer;">Maybe Later</p>
+        </div>
+    </div>
+
+    <canvas id="render-canvas"></canvas>
 
     <script type="module">
         import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0';
 
         const videoInput = document.getElementById('video-input');
         const renderBtn = document.getElementById('render-btn');
-        const status = document.getElementById('status');
         const player = document.getElementById('v-preview');
         const canvas = document.getElementById('render-canvas');
+        const light = document.getElementById('light');
+        const engineText = document.getElementById('engine-text');
         const ctx = canvas.getContext('2d');
 
         let transcriber;
         let wordTimestamps = [];
 
-        // 1. Init Professional AI
+        // SYMBOL LOGIC: Engine Ready
         async function init() {
-            status.innerText = "⏳ Loading AI Engine...";
             transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
-            status.innerText = "✅ AI Ready! Upload Video.";
+            light.classList.add('ready');
+            engineText.innerText = "ENGINE ONLINE 🟢";
         }
         init();
 
@@ -54,7 +97,10 @@
             const file = videoInput.files[0];
             if (!file) return;
 
-            status.innerText = "🎤 Analyzing Speech & Timing...";
+            // SYMBOL LOGIC: Processing
+            light.classList.remove('ready');
+            engineText.innerText = "SYNCING... 🟠";
+            
             player.src = URL.createObjectURL(file);
             player.style.display = "block";
             
@@ -63,19 +109,17 @@
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             const audioData = audioBuffer.getChannelData(0).slice(0, 10 * 16000);
 
-            // AI Magic: Get text WITH timestamps
             const result = await transcriber(audioData, { return_timestamps: 'word' });
-            wordTimestamps = result.chunks; // This contains {text, timestamp: [start, end]}
+            wordTimestamps = result.chunks;
             
-            status.innerText = "✅ AI Synced! Click to Download.";
+            // SYMBOL LOGIC: Ready for Download
+            light.classList.add('ready');
+            engineText.innerText = "EXPORT READY 🟢";
             renderBtn.style.display = 'block';
         };
 
         renderBtn.onclick = () => {
-            status.innerText = "🚀 Recording Synchronized Video...";
-            renderBtn.disabled = true;
-
-            // FIX RATIO: Set canvas to match video exactly
+            renderBtn.innerText = "RECORDING... 🟠";
             canvas.width = player.videoWidth;
             canvas.height = player.videoHeight;
 
@@ -88,10 +132,11 @@
                 const blob = new Blob(chunks, { type: 'video/webm' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = "Appear_Dynamic_AI.webm";
+                a.download = "Appear_AI_10s.webm";
                 a.click();
-                status.innerText = "✅ Done! Pro Style Synced.";
-                renderBtn.disabled = false;
+                
+                document.getElementById('pay-modal').style.display = 'flex';
+                renderBtn.innerText = "DOWNLOAD 🟢";
             };
 
             player.currentTime = 0;
@@ -104,33 +149,25 @@
                     player.pause();
                     return;
                 }
-                
-                // 1. Draw Video (No Stretch)
                 ctx.drawImage(player, 0, 0, canvas.width, canvas.height);
-                
-                // 2. Find which word to show based on current time
                 const currentTime = player.currentTime;
-                const currentWord = wordTimestamps.find(w => 
-                    currentTime >= w.timestamp[0] && currentTime <= w.timestamp[1]
-                );
+                const currentWord = wordTimestamps.find(w => currentTime >= w.timestamp[0] && currentTime <= w.timestamp[1]);
 
                 if (currentWord) {
-                    // Draw Dynamic Caption
-                    ctx.fillStyle = "#ffa550"; // Pro Yellow
-                    ctx.font = `bold ${canvas.height / 12}px sans-serif`;
+                    ctx.fillStyle = "#ffa550";
+                    ctx.font = `bold ${canvas.height / 10}px sans-serif`;
                     ctx.textAlign = "center";
                     ctx.strokeStyle = "black";
-                    ctx.lineWidth = 6;
-                    
-                    const text = currentWord.text.toUpperCase();
-                    ctx.strokeText(text, canvas.width / 2, canvas.height * 0.8);
-                    ctx.fillText(text, canvas.width / 2, canvas.height * 0.8);
+                    ctx.lineWidth = 8;
+                    ctx.strokeText(currentWord.text.toUpperCase(), canvas.width / 2, canvas.height * 0.8);
+                    ctx.fillText(currentWord.text.toUpperCase(), canvas.width / 2, canvas.height * 0.8);
                 }
-                
                 requestAnimationFrame(drawFrame);
             };
             drawFrame();
         };
+
+        window.closeModal = () => { document.getElementById('pay-modal').style.display = 'none'; };
     </script>
 </body>
 </html>
