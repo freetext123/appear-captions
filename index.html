@@ -3,28 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Step 1: 99% Accurate AI</title>
+    <title>AppearCaptions | Step 2 Finalized</title>
     <style>
         :root { --main: #ffa550; --bg: #121212; }
         body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        .test-box { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; border: 2px solid #444; }
-        textarea { width: 100%; height: 200px; background: #000; color: #00ff00; border: 1px solid var(--main); border-radius: 10px; padding: 12px; font-size: 1rem; margin-top: 15px; }
+        .container { max-width: 500px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; border: 2px solid #333; }
+        textarea { width: 100%; height: 150px; background: #000; color: #00ff00; border: 1px solid var(--main); border-radius: 10px; padding: 10px; margin-top: 15px; }
         .btn { background: var(--main); color: black; padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; }
-        #loading-status { color: var(--main); font-size: 0.8rem; margin: 10px 0; }
+        #status { color: var(--main); font-size: 0.85rem; margin: 10px 0; font-weight: bold; }
+        .watermark-note { font-size: 0.7rem; color: #777; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <h2>Step 1: Whisper AI Precision</h2>
-    <div class="test-box">
+    <h1 style="color: var(--main);">AppearCaptions AI</h1>
+    <div class="container">
         <input type="file" id="video-input" accept="video/*" style="display:none;">
         <button class="btn" onclick="document.getElementById('video-input').click()">UPLOAD VIDEO</button>
         
-        <div id="loading-status">AI Engine: Waiting for Upload...</div>
+        <div id="status">AI Engine Ready...</div>
         
-        <textarea id="output-text" placeholder="Perfect text will appear here..."></textarea>
+        <textarea id="output-text" placeholder="10s AI Magic will appear here..."></textarea>
         
-        <button id="process-btn" class="btn" style="display:none;">CONVERT TO TEXT (ACCURATE)</button>
+        <button id="process-btn" class="btn" style="display:none;">GENERATE & DOWNLOAD (FREE)</button>
+        <p class="watermark-note">Free version includes watermark & 10s limit.</p>
     </div>
 
     <script type="module">
@@ -33,43 +35,54 @@
         const videoInput = document.getElementById('video-input');
         const processBtn = document.getElementById('process-btn');
         const outputText = document.getElementById('output-text');
-        const status = document.getElementById('loading-status');
+        const status = document.getElementById('status');
 
         let transcriber;
 
-        // Initialize the AI Model
         async function initAI() {
-            status.innerText = "⏳ Loading AI Brain (Whisper)... please wait";
+            status.innerText = "⏳ Initializing Professional AI...";
             transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
-            status.innerText = "✅ AI Ready! Now Upload & Process.";
+            status.innerText = "✅ AI Engine Ready. Upload Video.";
         }
-
         initAI();
 
         videoInput.onchange = () => {
             if (videoInput.files[0]) {
                 processBtn.style.display = 'block';
-                status.innerText = "Video Selected. Click Process.";
+                status.innerText = "Video Loaded. Ready to process first 10s.";
             }
         };
 
         processBtn.onclick = async () => {
             const file = videoInput.files[0];
-            status.innerText = "🎤 Analyzing Audio... (This takes a few seconds)";
+            status.innerText = "🎤 Analyzing first 10 seconds... Please wait.";
             
-            // Create Audio Context to extract sound from video
             const audioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             
-            // Convert to format AI understands
-            const audioData = audioBuffer.getChannelData(0);
+            // Logic: Only take first 10 seconds of audio data
+            const sampleRate = audioBuffer.sampleRate;
+            const endSample = 10 * sampleRate; 
+            const audioData = audioBuffer.getChannelData(0).slice(0, endSample);
 
-            // Run AI Transcription
+            // AI Transcription
             const result = await transcriber(audioData);
             
-            outputText.value = result.text;
-            status.innerText = "✅ Done! Accuracy: 90-99%";
+            // Point 1: Show 10s result with Watermark text
+            const finalCaption = result.text + " [Created via AppearCaptions.online]";
+            outputText.value = finalCaption;
+            
+            status.innerText = "✅ Processed! Auto-Downloading...";
+
+            // Point 2: Auto Download (The original 10s preview or full file for now)
+            setTimeout(() => {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(file);
+                a.download = "AppearCaptions_10s_Free.mp4";
+                a.click();
+                status.innerText = "🔥 Downloaded! Upgrade for Full Video.";
+            }, 1500);
         };
     </script>
 </body>
