@@ -3,22 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppearCaptions | Fast Render</title>
+    <title>AppearCaptions | Pro Dynamic AI</title>
     <style>
-        :root { --main: #ffa550; --bg: #121212; --card: #1e1e1e; }
+        :root { --main: #ffa550; --bg: #121212; }
         body { background: var(--bg); color: white; font-family: sans-serif; text-align: center; padding: 10px; }
-        .container { max-width: 500px; margin: auto; background: var(--card); padding: 20px; border-radius: 15px; border: 2px solid #333; }
-        
-        .font-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
-        .font-opt { padding: 10px; border: 1px solid #444; border-radius: 8px; font-size: 0.8rem; cursor: pointer; position: relative; }
-        .font-opt.active { border-color: var(--main); background: #333; }
-        .locked { opacity: 0.5; cursor: not-allowed; }
-        .locked-tag { position: absolute; top: -5px; right: -5px; background: red; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 5px; }
-
-        textarea { width: 100%; height: 80px; background: #000; color: #00ff00; border: 1px solid var(--main); border-radius: 10px; padding: 10px; box-sizing: border-box; font-size: 1rem; }
-        .btn { background: var(--main); color: black; padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 100%; cursor: pointer; margin-top: 10px; }
-        video, canvas { display: none; width: 100%; border-radius: 10px; margin-top: 10px; }
+        .container { max-width: 450px; margin: auto; background: #1e1e1e; padding: 15px; border-radius: 15px; border: 2px solid #333; }
+        #v-preview { width: 100%; border-radius: 10px; display: none; margin-top: 10px; border: 1px solid #444; }
+        .btn { background: var(--main); color: black; padding: 15px; border-radius: 30px; border: none; font-weight: bold; width: 100%; cursor: pointer; margin-top: 15px; }
         #status { color: var(--main); font-size: 0.8rem; margin-top: 10px; font-weight: bold; }
+        canvas { display: none; } /* Hidden, used for recording only */
     </style>
 </head>
 <body>
@@ -28,20 +21,11 @@
     <div class="container">
         <input type="file" id="video-input" accept="video/*" style="display:none;">
         <button class="btn" onclick="document.getElementById('video-input').click()">UPLOAD VIDEO</button>
-
-        <div class="font-selector">
-            <div class="font-opt active">Classic White (FREE)</div>
-            <div class="font-opt locked">Viral Yellow <span class="locked-tag">PRO</span></div>
-            <div class="font-opt locked">Bold Shadow <span class="locked-tag">PRO</span></div>
-            <div class="font-opt locked">Neon Glow <span class="locked-tag">PRO</span></div>
-        </div>
-
-        <textarea id="output-text" placeholder="AI Transcript will appear here..."></textarea>
         
-        <button id="render-btn" class="btn" style="display:none;">DOWNLOAD 10s CAPTIONED VIDEO</button>
         <div id="status">Waiting for AI...</div>
-
-        <video id="v-player" muted playsinline></video>
+        <video id="v-preview" muted playsinline></video>
+        
+        <button id="render-btn" class="btn" style="display:none;">GENERATE DYNAMIC VIDEO (10s)</button>
         <canvas id="render-canvas"></canvas>
     </div>
 
@@ -50,14 +34,15 @@
 
         const videoInput = document.getElementById('video-input');
         const renderBtn = document.getElementById('render-btn');
-        const outputText = document.getElementById('output-text');
         const status = document.getElementById('status');
-        const player = document.getElementById('v-player');
+        const player = document.getElementById('v-preview');
         const canvas = document.getElementById('render-canvas');
         const ctx = canvas.getContext('2d');
 
         let transcriber;
+        let wordTimestamps = [];
 
+        // 1. Init Professional AI
         async function init() {
             status.innerText = "⏳ Loading AI Engine...";
             transcriber = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
@@ -69,30 +54,30 @@
             const file = videoInput.files[0];
             if (!file) return;
 
-            status.innerText = "🎤 Analyzing first 10s... Please wait.";
+            status.innerText = "🎤 Analyzing Speech & Timing...";
             player.src = URL.createObjectURL(file);
+            player.style.display = "block";
             
             const audioContext = new AudioContext({ sampleRate: 16000 });
             const arrayBuffer = await file.arrayBuffer();
             const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
             const audioData = audioBuffer.getChannelData(0).slice(0, 10 * 16000);
 
-            const result = await transcriber(audioData);
-            outputText.value = result.text;
+            // AI Magic: Get text WITH timestamps
+            const result = await transcriber(audioData, { return_timestamps: 'word' });
+            wordTimestamps = result.chunks; // This contains {text, timestamp: [start, end]}
             
-            status.innerText = "✅ Ready! Click Download.";
+            status.innerText = "✅ AI Synced! Click to Download.";
             renderBtn.style.display = 'block';
         };
 
         renderBtn.onclick = () => {
-            status.innerText = "🚀 Recording 10s Video... (Fast)";
+            status.innerText = "🚀 Recording Synchronized Video...";
             renderBtn.disabled = true;
 
-            // Setup Canvas Size
-            player.onloadedmetadata = () => {
-                canvas.width = player.videoWidth;
-                canvas.height = player.videoHeight;
-            };
+            // FIX RATIO: Set canvas to match video exactly
+            canvas.width = player.videoWidth;
+            canvas.height = player.videoHeight;
 
             const stream = canvas.captureStream(30);
             const recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
@@ -101,16 +86,14 @@
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'video/webm' });
-                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = "Appear_Viral_Video.webm";
+                a.href = URL.createObjectURL(blob);
+                a.download = "Appear_Dynamic_AI.webm";
                 a.click();
-                status.innerText = "✅ Downloaded! Check your gallery.";
+                status.innerText = "✅ Done! Pro Style Synced.";
                 renderBtn.disabled = false;
             };
 
-            // Start Recording
             player.currentTime = 0;
             player.play();
             recorder.start();
@@ -122,19 +105,27 @@
                     return;
                 }
                 
-                // Draw Video Frame
+                // 1. Draw Video (No Stretch)
                 ctx.drawImage(player, 0, 0, canvas.width, canvas.height);
                 
-                // Draw Captions
-                ctx.fillStyle = "white";
-                ctx.font = `${canvas.height / 15}px Arial`;
-                ctx.textAlign = "center";
-                ctx.strokeStyle = "black";
-                ctx.lineWidth = 4;
-                
-                const text = outputText.value.substring(0, 50);
-                ctx.strokeText(text, canvas.width / 2, canvas.height - 50);
-                ctx.fillText(text, canvas.width / 2, canvas.height - 50);
+                // 2. Find which word to show based on current time
+                const currentTime = player.currentTime;
+                const currentWord = wordTimestamps.find(w => 
+                    currentTime >= w.timestamp[0] && currentTime <= w.timestamp[1]
+                );
+
+                if (currentWord) {
+                    // Draw Dynamic Caption
+                    ctx.fillStyle = "#ffa550"; // Pro Yellow
+                    ctx.font = `bold ${canvas.height / 12}px sans-serif`;
+                    ctx.textAlign = "center";
+                    ctx.strokeStyle = "black";
+                    ctx.lineWidth = 6;
+                    
+                    const text = currentWord.text.toUpperCase();
+                    ctx.strokeText(text, canvas.width / 2, canvas.height * 0.8);
+                    ctx.fillText(text, canvas.width / 2, canvas.height * 0.8);
+                }
                 
                 requestAnimationFrame(drawFrame);
             };
